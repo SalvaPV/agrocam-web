@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgroCam, revisa tus mangos antes de cortar</title>
+<meta name="description" content="App para Android que encierra cada mango con la cámara, marca posibles signos de daño y guarda la foto con su ubicación. Funciona sin internet.">
+<meta name="theme-color" content="#F5F3EC">
+<link rel="preload" as="image" href="img/huerta.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,700..900&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@500&family=Atkinson+Hyperlegible+Next:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cal:#F5F3EC;
+  --cal-2:#E9E5D9;
+  --tinta:#14231B;
+  --tinta-2:#3C463F;
+  --mango:#EDA23F;
+  --rojo:#B8261F;
+  --verde:#1B4A36;
+  --hoja:#B9DAB7;
+  --sano:#1D7A37;
+  --ambar:#A36F00;
+  --display:'Archivo','Helvetica Neue','Arial Narrow','Roboto Condensed',sans-serif-condensed,Arial,sans-serif;
+  --body:'Atkinson Hyperlegible Next','Atkinson Hyperlegible',system-ui,sans-serif;
+  --mono:'Atkinson Hyperlegible Mono',ui-monospace,monospace;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+html{scrollbar-color:var(--verde) var(--cal)}
+body{margin:0;background:var(--cal);color:var(--tinta)}
+::selection{background:var(--mango);color:var(--tinta)}
+a{color:inherit}
+a:focus-visible,summary:focus-visible{outline:3px solid var(--rojo);outline-offset:4px;border-radius:6px}
+
+.pagina{font-family:var(--body);font-size:18px;line-height:1.55;overflow-x:clip}
+.wrap{max-width:1240px;margin:0 auto;padding:0 40px;box-sizing:border-box}
+
+/* ---------- rótulo: letra pintada ---------- */
+.rot{font-family:var(--display);font-weight:900;text-transform:uppercase;line-height:.9;letter-spacing:.004em;margin:0;color:var(--fill,var(--tinta))}
+.rot-c{font-stretch:62%}
+.rot-x{font-stretch:125%;font-weight:800;letter-spacing:.01em}
+.sombra{text-shadow:.055em .055em 0 var(--sombra,var(--rojo))}
+.filete{-webkit-text-stroke:.032em var(--filete,var(--tinta));paint-order:stroke fill}
+
+/* ---------- botones ---------- */
+.btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--body);font-weight:700;font-size:17px;line-height:1;padding:17px 24px;border-radius:12px;text-decoration:none;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background-color .2s}
+.btn-tinta{background:var(--tinta);color:var(--cal)}
+.btn-tinta:hover{transform:translateY(-2px);box-shadow:0 10px 22px -8px rgba(20,35,27,.55)}
+.btn-linea{border:2px solid var(--tinta);padding:15px 22px;color:var(--tinta)}
+.btn-linea:hover{background:var(--tinta);color:var(--cal)}
+.btn-mango{background:var(--mango);color:var(--tinta)}
+.btn-mango:hover{transform:translateY(-2px);box-shadow:0 10px 22px -8px rgba(0,0,0,.6)}
+.btn svg{flex:0 0 auto}
+
+/* ---------- menú flotante ---------- */
+.pastilla{position:fixed;z-index:50;top:16px;left:50%;transform:translateX(-50%);width:min(900px,calc(100% - 32px));box-sizing:border-box;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;padding:10px 10px 10px 12px;background:rgba(253,252,248,.92);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);border-radius:22px;box-shadow:0 14px 34px -14px rgba(20,35,27,.35),0 2px 6px -2px rgba(20,35,27,.12);font-family:var(--body)}
+.marca{display:flex;align-items:center;gap:12px;text-decoration:none}
+.marca svg{border-radius:11px;box-shadow:0 4px 10px -4px rgba(20,35,27,.5)}
+.marca-txt{font-family:var(--display);font-stretch:125%;font-weight:900;font-size:20px;letter-spacing:.02em;text-transform:uppercase}
+.pastilla-links{display:flex;justify-content:center;gap:30px;font-size:16.5px}
+.pastilla-links a{text-decoration:none;color:#4B544E;transition:color .2s}
+.pastilla-links a:hover{color:var(--tinta)}
+.pastilla-btn{padding:13px 18px;font-size:16px;border-radius:14px;box-shadow:0 8px 18px -8px rgba(20,35,27,.6)}
+
+/* ---------- portada centrada ---------- */
+.portada{padding-top:150px;overflow:clip}
+.portada-txt{display:flex;flex-direction:column;align-items:center;text-align:center}
+.titular{margin:0;display:flex;flex-direction:column;align-items:center;gap:.08em}
+.t1{font-size:clamp(22px,2.8vw,40px)}
+.t2{font-size:clamp(92px,16.5vw,236px);--fill:var(--mango);--sombra:var(--rojo);--filete:var(--tinta);margin:-.03em 0 .02em}
+.t3{font-size:clamp(34px,4.6vw,66px);--fill:var(--rojo);--sombra:var(--tinta)}
+.entrada{margin:30px auto 0;font-size:20px;line-height:1.5;max-width:40ch;color:var(--tinta-2)}
+.ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:30px}
+.meta{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 22px;margin:20px 0 0;font-size:15px;color:var(--tinta-2)}
+.meta span{display:inline-flex;align-items:center;gap:8px}
+.meta span+span::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--rojo);margin-left:-14px;margin-right:6px}
+.nota{margin:18px 0 0;font-size:15px;color:var(--tinta-2)}
+
+.escena{position:relative;margin-top:72px;margin-bottom:88px}
+.escena-muro{position:relative;height:560px;background-color:var(--verde);background-image:linear-gradient(180deg,rgba(20,35,27,.05),rgba(20,35,27,.42)),url(img/huerta.webp);background-size:cover;background-position:50% 30%;overflow:hidden;display:flex;justify-content:center}
+.escena-muro::before{content:"";position:absolute;inset:14px;border:3px solid var(--mango);pointer-events:none;z-index:2}
+.escena-tel{position:relative;z-index:1;margin-top:64px}
+.escena-letrero{position:absolute;z-index:3;left:34px;top:32px;font-size:22px;--fill:var(--cal);--sombra:var(--rojo)}
+.mango-lado{position:absolute;z-index:4;width:clamp(120px,16vw,220px);height:auto;filter:drop-shadow(0 26px 22px rgba(20,35,27,.4))}
+.mango-izq{left:1%;bottom:-80px;transform:rotate(-18deg)}
+.mango-der{right:1%;bottom:-50px;transform:rotate(24deg) scaleX(-1)}
+.chip{position:absolute;left:50%;top:50px;transform:translateX(-50%);white-space:nowrap;background:rgba(22,21,17,.82);border-radius:999px;padding:9px 16px;display:flex;align-items:center;gap:9px;color:#F3EFE4;font-size:13.5px;font-weight:700}
+.chip-busca{opacity:0}
+
+/* pintura: la letra primero, la sombra después */
+@keyframes brocha{from{clip-path:inset(-30% 100% -40% -10%)}to{clip-path:inset(-30% -30% -40% -10%)}}
+@keyframes sombra-roja{from{text-shadow:0 0 0 transparent}to{text-shadow:.055em .055em 0 var(--rojo)}}
+@keyframes sombra-tinta{from{text-shadow:0 0 0 transparent}to{text-shadow:.055em .055em 0 var(--tinta)}}
+.pinta .t1{animation:brocha .55s var(--ease) .1s both}
+.pinta .t2{animation:brocha .8s var(--ease) .3s both,sombra-roja .35s var(--ease) 1.05s both}
+.pinta .t3{animation:brocha .7s var(--ease) .75s both,sombra-tinta .35s var(--ease) 1.4s both}
+
+/* ---------- teléfono ---------- */
+.telefono{width:300px;flex:0 0 auto;background:#0B0B09;border-radius:46px;padding:9px;box-sizing:border-box;box-shadow:0 30px 50px -18px rgba(0,0,0,.5)}
+.pantalla{position:relative;height:602px;border-radius:38px;overflow:hidden;font-family:var(--body)}
+.pantalla img{display:block;width:100%;height:100%;object-fit:cover}
+.pantalla img.mini{width:50px;height:50px}
+
+/* ---------- muros ---------- */
+.muro{position:relative;margin:0 20px 20px;padding:104px 0;box-sizing:border-box}
+.muro::before{content:"";position:absolute;inset:16px;border:3px solid var(--marco,var(--tinta));pointer-events:none}
+.muro>.wrap{position:relative}
+.m-mango{background:var(--mango);color:var(--tinta);--marco:var(--tinta)}
+.m-rojo{background:var(--rojo);color:var(--cal);--marco:var(--cal)}
+.m-verde{background:var(--verde);color:var(--cal);--marco:var(--mango)}
+.m-hoja{background:var(--hoja);color:var(--tinta);--marco:var(--verde)}
+.m-tinta{background:var(--tinta);color:var(--cal);--marco:var(--mango)}
+
+.h-muro{font-size:clamp(48px,8.2vw,124px)}
+.linea{display:block}
+.texto{font-size:19px;line-height:1.55;max-width:44ch;margin:28px 0 0}
+.m-mango .texto{color:#3A2C12}
+.m-rojo .texto{color:#FBE3DE}
+.m-verde .texto,.m-tinta .texto{color:#D7E6DC}
+.m-hoja .texto{color:#24402F}
+
+.dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center}
+.dos-tel{display:grid;grid-template-columns:auto minmax(0,1fr);gap:72px;align-items:center}
+.dos-tel.invertido{grid-template-columns:minmax(0,1fr) auto}
+
+/* letrero: tabla blanca colgada en el muro */
+.letrero{background:var(--cal);color:var(--tinta);padding:10px 32px;position:relative;box-shadow:0 18px 30px -16px rgba(58,44,18,.55)}
+.letrero::before{content:"";position:absolute;inset:8px;border:2px solid var(--tinta);pointer-events:none}
+.fila{display:grid;grid-template-columns:72px minmax(0,1fr);gap:20px;align-items:center;padding:22px 0}
+.fila+.fila{border-top:3px solid var(--tinta)}
+.fila h3{font-size:30px;margin:0 0 4px}
+.fila p{margin:0;font-size:17px;line-height:1.45;color:var(--tinta-2)}
+.aclara{margin:22px 0 0;font-size:16px;color:#3A2C12;max-width:46ch}
+
+.ficha{margin-top:32px;background:var(--cal);color:var(--tinta);padding:18px 22px;max-width:440px;position:relative}
+.ficha::before{content:"";position:absolute;inset:6px;border:2px solid var(--tinta);pointer-events:none}
+.ficha-tit{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px}
+.ficha-dato{width:max-content;max-width:100%;margin:8px 0 0;font-family:var(--mono);font-weight:500;font-size:15px;line-height:1.5;color:var(--tinta-2)}
+.ficha-pie{margin:10px 0 0;font-size:14px;color:var(--tinta-2)}
+
+.puntos{list-style:none;margin:30px 0 0;padding:0;display:flex;flex-direction:column;gap:14px;font-size:18px}
+.puntos li{display:flex;gap:14px;align-items:flex-start}
+.puntos svg{flex:0 0 auto;margin-top:3px}
+
+.mapa-zona{position:relative;margin-top:64px}
+.mapa-marco{position:relative;background:#EEEEEA;color:var(--tinta);border:3px solid var(--cal);box-shadow:0 30px 50px -24px rgba(0,0,0,.6);margin-right:200px}
+.mapa-marco>svg{display:block;width:100%;height:auto}
+.mapa-tel{position:absolute;right:0;bottom:-40px;z-index:1;color:var(--tinta)}
+.mapa-cab .texto{max-width:52ch}
+.mapa-pie{margin:18px 0 0;font-size:15px;color:#BFD3C6;max-width:60ch}
+.leyenda{position:absolute;left:18px;top:18px;background:var(--cal);color:var(--tinta);padding:10px 14px;font-size:15px;font-weight:700;display:flex;flex-direction:column;gap:6px}
+.leyenda span{display:flex;align-items:center;gap:10px}
+
+@keyframes ping{0%{transform:scale(.4);opacity:.8}100%{transform:scale(2.8);opacity:0}}
+.ping{animation:ping 2.2s ease-out infinite;transform-box:fill-box;transform-origin:center}
+.ping2{animation-delay:.7s}.ping3{animation-delay:1.4s}
+
+/* ---------- aviso ---------- */
+.aviso-sec{padding:112px 0 96px}
+.aviso{position:relative;border:6px solid var(--rojo);padding:56px 48px 52px;background:var(--cal)}
+.aviso::before{content:"";position:absolute;inset:8px;border:2px solid var(--rojo);pointer-events:none}
+.aviso .h-aviso{font-size:clamp(52px,7vw,104px);--fill:var(--rojo);--sombra:var(--tinta)}
+.tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px;margin-top:44px}
+.tres h3{font-family:var(--body);font-weight:700;font-size:22px;line-height:1.25;margin:0 0 10px}
+.tres p{margin:0;color:var(--tinta-2);font-size:17px}
+
+/* ---------- preguntas ---------- */
+.preguntas{padding:24px 0 120px}
+.preguntas-grid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,7fr);gap:56px;align-items:start}
+.h-preg{font-size:clamp(52px,5.8vw,84px);--fill:var(--tinta);--sombra:var(--mango)}
+.preguntas details{border-top:3px solid var(--tinta)}
+.preguntas details:last-child{border-bottom:3px solid var(--tinta)}
+.preguntas summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 0;font-weight:700;font-size:20px}
+.preguntas summary::-webkit-details-marker{display:none}
+.preguntas summary svg{flex:0 0 auto;transition:transform .3s var(--ease)}
+.preguntas details[open] summary svg{transform:rotate(45deg)}
+.preguntas details p{margin:0 0 24px;max-width:60ch;color:var(--tinta-2)}
+
+/* ---------- cierre ---------- */
+.cierre{text-align:center;padding:128px 0 120px}
+.h-cierre{font-size:clamp(64px,10vw,152px);--fill:var(--mango);--sombra:var(--rojo)}
+.cierre .texto{margin-left:auto;margin-right:auto;max-width:40ch}
+.cierre .ctas{justify-content:center;margin-top:40px}
+.cierre .nota{color:#BFD3C6}
+
+/* ---------- zoclo ---------- */
+.zoclo{background:var(--verde);color:#D7E6DC;border-top:8px solid var(--rojo);margin-top:0}
+.zoclo .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 32px;padding-top:34px;padding-bottom:34px;font-size:16px}
+.zoclo .marca-txt{color:var(--cal);font-size:20px}
+.zoclo a{font-weight:700;text-underline-offset:5px}
+
+/* ---------- adaptable ---------- */
+
+/* ---------- movimiento ligado al scroll ---------- */
+@supports (animation-timeline: view()){
+  /* portada: el teléfono sube, los mangos se abren, el recuadro se cierra sobre el fruto */
+  .anima .escena{view-timeline:--escena block}
+  .anima .escena-tel{animation:tel-sube linear both;animation-timeline:--escena;animation-range:entry 0% cover 36%}
+  .anima .mango-izq{animation:mango-izq linear both;animation-timeline:--escena;animation-range:entry 0% exit 30%}
+  .anima .mango-der{animation:mango-der linear both;animation-timeline:--escena;animation-range:entry 0% exit 30%}
+  .anima .mira{transform-box:fill-box;transform-origin:center;animation:mira linear both;animation-timeline:--escena;animation-range:cover 16% cover 38%}
+  .anima .chip-busca{animation:chip-sale linear both;animation-timeline:--escena;animation-range:cover 26% cover 33%}
+  .anima .chip-dano{animation:chip-entra linear both;animation-timeline:--escena;animation-range:cover 32% cover 40%}
+
+  /* rótulos: cada renglón se pinta de izquierda a derecha y su sombra llega después */
+  .anima .muro h2 .linea,.anima .h-aviso,.anima .h-preg{animation:brocha linear both,sombra-pinta linear both;animation-timeline:view(),view();animation-range:entry 50% cover 30%,cover 26% cover 36%}
+  .anima .muro h2 .linea:nth-child(2){animation-range:entry 80% cover 34%,cover 30% cover 40%}
+  .anima .muro h2 .linea:nth-child(3){animation-range:cover 10% cover 38%,cover 34% cover 44%}
+
+  /* el recuadro de cada color se cierra como la mira de la cámara */
+  .anima .fila svg{animation:fija linear both;animation-timeline:view();animation-range:entry 40% cover 45%}
+  .anima .fila:nth-child(2) svg{animation-range:entry 70% cover 50%}
+  .anima .fila:nth-child(3) svg{animation-range:entry 100% cover 55%}
+
+  /* el registro se escribe solo */
+  .anima .ficha-dato{animation:escribe steps(44,end) both;animation-timeline:view();animation-range:entry 60% cover 50%}
+
+  /* el mapa traza la ruta y marca cada árbol */
+  .anima .mapa-marco{view-timeline:--mapa block}
+  .anima .ruta{stroke-dasharray:1;animation:traza linear both;animation-timeline:--mapa;animation-range:entry 50% cover 55%}
+  .anima .punto{transform-box:fill-box;transform-origin:center;animation:marca linear both;animation-timeline:--mapa}
+  .anima .p1{animation-range:entry 45% entry 60%}
+  .anima .p2{animation-range:entry 60% entry 75%}
+  .anima .p3{animation-range:entry 75% entry 90%}
+  .anima .p4{animation-range:entry 90% cover 50%}
+  .anima .p5{animation-range:cover 45% cover 55%}
+
+  /* los teléfonos se montan en el muro */
+  .anima .dos-tel>.telefono,.anima .mapa-tel{animation:monta linear both;animation-timeline:view();animation-range:entry 0% cover 30%}
+  .anima .m-hoja .telefono{--giro:4deg}
+}
+@keyframes tel-sube{from{transform:translateY(230px)}to{transform:none}}
+@keyframes mango-izq{from{transform:translate(22%,8%) rotate(4deg)}to{transform:translate(-14%,-34%) rotate(-24deg)}}
+@keyframes mango-der{from{transform:translate(-22%,12%) rotate(-4deg) scaleX(-1)}to{transform:translate(14%,-40%) rotate(30deg) scaleX(-1)}}
+@keyframes mira{from{transform:scale(1.45);stroke:#F3EFE4;opacity:.7}60%{stroke:#F3EFE4;opacity:1}to{transform:none;stroke:#FF5A4E;opacity:1}}
+@keyframes chip-sale{from{opacity:1}to{opacity:0}}
+@keyframes chip-entra{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translateX(-50%)}}
+@keyframes sombra-pinta{from{text-shadow:0 0 0 transparent}to{text-shadow:.055em .055em 0 var(--sombra,var(--rojo))}}
+@keyframes fija{from{transform:scale(1.7);opacity:0}to{transform:none;opacity:1}}
+@keyframes escribe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes traza{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes marca{from{transform:scale(0);opacity:0}70%{transform:scale(1.25);opacity:1}to{transform:none;opacity:1}}
+@keyframes monta{from{transform:translateY(110px) rotate(var(--giro,-4deg));opacity:.2}to{transform:none;opacity:1}}
+
+@media (max-width:1080px){
+  .mapa-marco{margin-right:0}
+  .mapa-tel{display:none}
+  .pastilla-links{gap:20px;font-size:15.5px}
+}
+@media (max-width:960px){
+  .wrap{padding:0 28px}
+  .dos,.dos-tel,.dos-tel.invertido,.preguntas-grid{grid-template-columns:minmax(0,1fr)}
+  .pastilla-links{display:none}
+  .pastilla{grid-template-columns:1fr auto;width:min(560px,calc(100% - 24px))}
+  .dos-tel .telefono{justify-self:center;order:2}
+  .tres{grid-template-columns:minmax(0,1fr);gap:28px}
+}
+@media (max-width:640px){
+  .pagina{font-size:17px}
+  .wrap{padding:0 22px}
+  .portada{padding-top:118px}
+  .escena{margin-top:52px;margin-bottom:64px;padding:0 10px}
+  .escena-muro{height:470px}
+  .escena-tel{margin-top:70px}
+  .escena-letrero{left:24px;top:26px;font-size:18px}
+  .mango-lado{width:118px}
+  .mango-izq{left:-26px;bottom:-34px}
+  .mango-der{right:-26px;bottom:-22px}
+  .meta{font-size:14px;gap:4px 18px}
+  .meta span+span::before{margin-left:-11px;margin-right:4px}
+  .pastilla-btn{padding:11px 14px}
+  .marca-txt{font-size:17px}
+  .muro{margin:0 10px 10px;padding:72px 0}
+  .muro::before{inset:9px}
+  .letrero{padding:6px 18px}
+  .fila{grid-template-columns:52px minmax(0,1fr);gap:14px;padding:18px 0}
+  .fila svg{width:52px;height:52px}
+  .fila h3{font-size:24px}
+  .aviso{padding:40px 22px 36px;border-width:5px}
+  .aviso-sec{padding:72px 0 64px}
+  .telefono{width:272px;border-radius:42px}
+  .pantalla{height:546px;border-radius:34px}
+  .entrada{font-size:18px}
+  .cierre{padding:88px 0 84px}
+}
+
+/* ---------- fotos ---------- */
+.escena-letrero{text-shadow:.055em .055em 0 var(--rojo),0 2px 14px rgba(0,0,0,.35)}
+.cam-foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam-sombra{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.38) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 62%,rgba(0,0,0,.5) 100%)}
+
+.lado-der{position:relative}
+.pegadas{position:relative;z-index:2;display:flex;justify-content:center;gap:26px;margin:0 0 -18px;align-items:flex-start}
+.pegada{margin:0;background:var(--cal);padding:10px 10px 12px;width:min(220px,44%);box-shadow:0 18px 28px -16px rgba(58,44,18,.7);position:relative}
+.pegada::before{content:"";position:absolute;left:50%;top:-12px;width:70px;height:24px;margin-left:-35px;background:rgba(245,243,236,.78);transform:rotate(-3deg)}
+.pegada-1{transform:rotate(-3deg)}
+.pegada-2{transform:rotate(2.5deg);margin-top:18px}
+.pegada-foto{position:relative;aspect-ratio:3/4;overflow:hidden;background:#2a3a2f}
+.pegada-foto img{display:block;width:100%;height:100%;object-fit:cover}
+.pegada-foto svg{position:absolute;inset:0;width:100%;height:100%}
+.pegada figcaption{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14.5px;font-weight:700;line-height:1.25;color:var(--tinta)}
+.punto-c{flex:0 0 auto;width:11px;height:11px;border-radius:50%}
+.pegadas-nota{margin:14px 0 0;font-size:14px;color:#3A2C12}
+
+.preg-lado{position:sticky;top:120px}
+.mural{margin:34px 0 0;border:3px solid var(--tinta);padding:8px;background:var(--cal);box-shadow:10px 10px 0 var(--mango)}
+.mural img{display:block;width:100%;height:auto}
+
+.cierre{text-align:left}
+.cierre-dos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px;align-items:center}
+.cierre-foto{margin:0;border:3px solid var(--mango);padding:10px;transform:rotate(-2deg);box-shadow:0 30px 50px -24px rgba(0,0,0,.7)}
+.cierre-foto img{display:block;width:100%;height:auto}
+.cierre .h-cierre{font-size:clamp(60px,7.4vw,118px)}
+.cierre .texto{margin-left:0;margin-right:0}
+.cierre .ctas{justify-content:flex-start}
+
+@supports (animation-timeline: view()){
+  .anima .escena-muro{animation:fondo linear both;animation-timeline:--escena;animation-range:entry 0% exit 100%}
+  .anima .cam-foto{animation:enfoca linear both;animation-timeline:--escena;animation-range:entry 20% cover 34%}
+  .anima .pegada-1{animation:pega-1 linear both;animation-timeline:view();animation-range:entry 10% cover 35%}
+  .anima .pegada-2{animation:pega-2 linear both;animation-timeline:view();animation-range:entry 30% cover 42%}
+  .anima .pegada-foto svg{transform-box:fill-box;transform-origin:center;animation:fija linear both;animation-timeline:view();animation-range:entry 90% cover 45%}
+  .anima .mural{animation:brocha linear both;animation-timeline:view();animation-range:entry 20% cover 40%}
+  .anima .cierre-foto{animation:monta-foto linear both;animation-timeline:view();animation-range:entry 0% cover 40%}
+}
+@keyframes fondo{from{background-position:50% 0%}to{background-position:50% 70%}}
+@keyframes enfoca{from{transform:scale(1.18);filter:blur(5px)}to{transform:none;filter:none}}
+@keyframes pega-1{from{transform:translateY(90px) rotate(-12deg);opacity:0}to{transform:rotate(-3deg);opacity:1}}
+@keyframes pega-2{from{transform:translateY(110px) rotate(12deg);opacity:0}to{transform:rotate(2.5deg);opacity:1}}
+@keyframes monta-foto{from{transform:translateY(120px) rotate(-8deg);opacity:.2}to{transform:rotate(-2deg);opacity:1}}
+
+@media (max-width:960px){
+  .cierre-dos{grid-template-columns:minmax(0,1fr);gap:48px}
+  .cierre-foto{order:2;max-width:560px}
+  .preg-lado{position:static}
+  .mural{max-width:520px}
+}
+@media (max-width:640px){
+  .mango-lado{width:96px}
+  .mango-izq{left:-14px;bottom:-40px}
+  .mango-der{right:-14px;bottom:-30px}
+  .pegadas{gap:14px}
+  .pegada{padding:7px 7px 9px}
+  .pegada figcaption{font-size:13px}
+  .mural{box-shadow:7px 7px 0 var(--mango)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+
+/* ================= SOBRIO =================
+   Fondo neutro en todas las secciones, sin marcos ni sombras de color.
+   El verde de marca queda en la escena de portada y en el cierre oscuro.
+   Rojo, verde y ámbar solo como significado (recuadros de la app). */
+:root{--papel:#FDFCF8;--superficie:#ECE9E0;--linea:rgba(20,35,27,.14)}
+
+.pagina .sombra,.pagina .sombra *{text-shadow:none !important}
+.pagina .filete{-webkit-text-stroke:0 !important}
+
+/* portada */
+.t1{--fill:var(--tinta-2)}
+.t2{--fill:var(--verde);font-size:clamp(84px,14vw,200px)}
+.t3{--fill:var(--tinta)}
+.meta span+span::before{background:rgba(20,35,27,.3)}
+.escena-muro{border-radius:28px}
+.escena-muro::before{display:none}
+.escena-letrero{font-family:var(--body);font-stretch:100%;font-size:13px !important;font-weight:700;letter-spacing:.08em;line-height:1;color:var(--cal);background:rgba(16,24,19,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);padding:9px 14px 9px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;left:24px;top:22px}
+.escena-letrero::before{content:"";width:8px;height:8px;border-radius:50%;background:#FF5A4E}
+
+/* secciones: mismo fondo, separadas por una línea fina */
+.muro{background:transparent;color:var(--tinta);margin:0;padding:120px 0;border-top:1px solid var(--linea)}
+.muro::before{display:none}
+.muro .texto,.aclara,.pegadas-nota,.mapa-pie{color:var(--tinta-2)}
+.pagina .h-muro,.pagina .h-aviso,.pagina .h-preg{color:var(--tinta)}
+.h-muro{font-size:clamp(44px,6.4vw,96px)}
+
+.letrero{background:var(--papel);border:1px solid var(--linea);border-radius:20px;box-shadow:none;padding:8px 28px}
+.letrero::before{display:none}
+.fila+.fila{border-top:1px solid var(--linea)}
+.fila h3{font-size:24px}
+
+.ficha{background:var(--papel);border:1px solid var(--linea);border-radius:14px}
+.ficha::before{display:none}
+
+.mapa-marco{border:1px solid var(--linea);border-radius:20px;overflow:hidden;box-shadow:0 24px 40px -30px rgba(20,35,27,.45)}
+.leyenda{background:var(--papel);border:1px solid var(--linea);border-radius:10px}
+
+.aviso-sec{border-top:1px solid var(--linea)}
+.aviso{border:1px solid var(--linea);border-radius:24px;background:var(--papel)}
+.aviso::before{display:none}
+.aviso .h-aviso{font-size:clamp(40px,5vw,72px)}
+
+.preguntas details{border-top:1px solid var(--linea)}
+.preguntas details:last-child{border-bottom:1px solid var(--linea)}
+
+/* cierre: la única sección oscura */
+.cierre{background:var(--tinta);color:var(--cal);margin:0 20px 20px;border-radius:28px;border-top:0}
+.pagina .h-cierre{color:var(--cal)}
+.cierre .texto{color:#C9D3CC}
+.cierre .nota{color:#9FB0A5}
+
+.zoclo{background:transparent;color:var(--tinta-2);border-top:1px solid var(--linea)}
+.zoclo .marca-txt{color:var(--tinta)}
+
+/* fotos (versión con fotos) */
+.pegada{border:1px solid var(--linea);border-radius:14px;padding:8px 8px 12px;background:var(--papel);box-shadow:0 14px 26px -18px rgba(20,35,27,.45)}
+.pegada::before{display:none}
+.pegada-1,.pegada-2{transform:none}
+.pegada-foto{border-radius:8px}
+.mural{border:0;padding:0;background:none;box-shadow:none;border-radius:16px;overflow:hidden}
+.cierre-foto{border:0;padding:0;transform:none;border-radius:20px;overflow:hidden}
+@keyframes pega-1{from{transform:translateY(80px);opacity:0}to{transform:none;opacity:1}}
+@keyframes pega-2{from{transform:translateY(100px);opacity:0}to{transform:none;opacity:1}}
+@keyframes monta-foto{from{transform:translateY(110px);opacity:.2}to{transform:none;opacity:1}}
+
+@media (max-width:640px){
+  .muro{margin:0;padding:80px 0}
+  .cierre{margin:0 10px 10px;border-radius:22px}
+  .escena-muro{border-radius:22px}
+  .letrero{padding:4px 18px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+
+/* Descarga del APK */
+.pasos-instalar{margin:28px 0 0;max-width:44ch;padding-left:1.4em;text-align:left;font-size:17px;line-height:1.5;color:var(--cal)}
+.pasos-instalar li{margin:6px 0}
+.pasos-instalar li::marker{color:var(--mango);font-weight:700}
+.huella{margin:24px 0 0;max-width:46ch;display:flex;flex-direction:column;gap:6px;font-size:14px;color:#BFD3C6}
+.huella code{font-family:"Atkinson Hyperlegible Mono",ui-monospace,monospace;font-size:13px;line-height:1.5;color:var(--cal);overflow-wrap:anywhere;word-break:break-all}
+.cierre .nota a{color:var(--cal);text-underline-offset:4px}
+.huella[hidden]{display:none}
+
+</style>
+</head>
+<body>
+<div class="pagina">
+
+<!-- ===== MENÚ FLOTANTE ===== -->
+<nav class="pastilla" aria-label="Principal">
+  <a class="marca" href="#inicio" aria-label="AgroCam, inicio">
+    <svg viewBox="0 0 108 108" width="40" height="40" aria-hidden="true">
+      <rect width="108" height="108" rx="24" fill="#235F46"/>
+      <g transform="translate(54 57) scale(.92) translate(-54 -58)">
+        <path fill="#EDA23F" d="M56,34 C73,33 79,50 76,63 C73,77 63,84 53,84 C44,84 35,78 33,65 C31,51 40,35 56,34Z"/>
+        <path fill="#fff" fill-opacity=".35" d="M42,48 C44,43 49,40 54,40 C49,44 46,49 45,56 C42,55 41,51 42,48Z"/>
+        <path fill="#B9DAB7" d="M54,38 C54,30 62,26 71,28 C68,36 62,40 54,38Z"/>
+      </g>
+      <path d="M26,40 L26,37 A11,11 0 0 1 37,26 L40,26 M68,26 L71,26 A11,11 0 0 1 82,37 L82,40 M82,68 L82,71 A11,11 0 0 1 71,82 L68,82 M40,82 L37,82 A11,11 0 0 1 26,71 L26,68" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+    </svg>
+    <span class="marca-txt">AgroCam</span>
+  </a>
+  <div class="pastilla-links">
+    <a href="#como">Cómo funciona</a>
+    <a href="#guarda">Registro</a>
+    <a href="#mapa">Mapa</a>
+    <a href="#preguntas">Preguntas</a>
+  </div>
+  <a class="btn btn-tinta pastilla-btn" href="#descargar">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M6.8 8.6h10.4a1 1 0 0 1 1 1v6.9a1.6 1.6 0 0 1-1.6 1.6h-.9v2.4a1.2 1.2 0 0 1-2.4 0v-2.4h-2.6v2.4a1.2 1.2 0 0 1-2.4 0v-2.4h-.9a1.6 1.6 0 0 1-1.6-1.6V9.6a1 1 0 0 1 1-1zM3.9 8.7a1.2 1.2 0 0 1 1.2 1.2v5.3a1.2 1.2 0 0 1-2.4 0V9.9a1.2 1.2 0 0 1 1.2-1.2zm16.2 0a1.2 1.2 0 0 1 1.2 1.2v5.3a1.2 1.2 0 0 1-2.4 0V9.9a1.2 1.2 0 0 1 1.2-1.2zM8.3 2.6l1.2 1.9a6.1 6.1 0 0 1 5 0l1.2-1.9a.4.4 0 0 1 .7.4l-1.1 1.8a5.2 5.2 0 0 1 2.8 3H5.9a5.2 5.2 0 0 1 2.8-3L7.6 3a.4.4 0 0 1 .7-.4zM9.6 5.8a.7.7 0 1 0 0 1.4.7.7 0 0 0 0-1.4zm4.8 0a.7.7 0 1 0 0 1.4.7.7 0 0 0 0-1.4z"/></svg>
+    Descargar</a>
+</nav>
+
+<!-- ===== PORTADA ===== -->
+<header id="inicio" class="portada">
+  <div class="wrap portada-txt">
+    <h1 class="titular pinta">
+      <span class="rot rot-x t1">Revisa tus</span>
+      <span class="rot rot-c t2 sombra filete">mangos</span>
+      <span class="rot t3 sombra">antes de cortar</span>
+    </h1>
+    <p class="entrada">Apunta la cámara al fruto. AgroCam encierra cada mango y te avisa si ve posibles signos de daño. Guarda la foto y el lugar exacto, aunque no tengas señal.</p>
+    <div class="ctas">
+      <a class="btn btn-tinta" href="#descargar">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>
+        Descargar para Android</a>
+      <a class="btn btn-linea" href="#como">Ver cómo funciona</a>
+    </div>
+    <p class="meta"><span>Funciona sin señal</span><span>30 días gratis</span><span>Android 8.0+</span></p>
+  </div>
+
+  <div class="escena wrap">
+    <div class="escena-muro">
+      <span class="rot rot-x escena-letrero sombra">En vivo</span>
+      <div class="telefono escena-tel">
+        <div class="pantalla" style="background:#18241D">
+          <img class="cam-foto" src="img/camara.webp" alt="">
+          <div class="cam-sombra"></div>
+          <svg viewBox="0 0 282 602" width="100%" height="100%" aria-hidden="true" style="position:absolute;inset:0;overflow:visible">
+            <path class="mira" d="M42,164 L42,142 Q42,126 58,126 L80,126 M202,126 L224,126 Q240,126 240,142 L240,164 M240,378 L240,400 Q240,416 224,416 L202,416 M80,416 L58,416 Q42,416 42,400 L42,378" fill="none" stroke="#FF5A4E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="chip chip-busca">Buscando mango…</div>
+          <div class="chip chip-dano"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M8 1.6 15 14H1z" fill="#FF5A4E"/></svg>Posibles signos de daño</div>
+          <p style="position:absolute;left:0;right:0;top:428px;margin:0;text-align:center;color:#F3EFE4;font-size:13px;font-weight:700;text-shadow:0 1px 6px rgba(0,0,0,.7)">Mantén el teléfono quieto</p>
+          <div style="position:absolute;left:50%;bottom:82px;margin-left:-33px;width:66px;height:66px;border-radius:50%;border:4px solid #F3EFE4;box-sizing:border-box;display:flex;align-items:center;justify-content:center"><div style="width:46px;height:46px;border-radius:50%;background:#F3EFE4"></div></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:68px;background:#1C1B16;display:flex;align-items:center;justify-content:space-around;color:#CAC5B7;font-size:11px;font-weight:700">
+            <span style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#B4CC84"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Cámara</span>
+            <span style="display:flex;flex-direction:column;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>Historial</span>
+            <span style="display:flex;flex-direction:column;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Mapa</span>
+            <span style="display:flex;flex-direction:column;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Ajustes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <img class="mango-lado mango-izq" src="img/mango-sano-recorte.webp" alt="">
+    <img class="mango-lado mango-der" src="img/mango-dano-recorte.webp" alt="">
+  </div>
+</header>
+
+<!-- ===== MURO MANGO: el recuadro ===== -->
+<section id="como" class="muro m-mango">
+  <div class="wrap dos">
+    <div>
+      <h2 class="rot rot-c h-muro sombra" style="--sombra:var(--rojo)"><span class="linea">El recuadro</span><span class="linea">te dice qué ve</span></h2>
+      <p class="texto">Antes de tomar la foto ya sabes cómo lo ve la app. Toca el mango que quieras revisar y espera a que el recuadro se quede quieto: entonces se activa el botón.</p>
+      <p class="aclara">No es un diagnóstico. La app solo compara lo que ve en la cáscara.</p>
+    </div>
+    <div class="lado-der">
+      <div class="pegadas">
+        <figure class="pegada pegada-1">
+          <div class="pegada-foto">
+            <img src="img/foto-sano.webp" alt="Mango amarillo en la rama, sin manchas visibles, dentro de un recuadro verde" loading="lazy" width="600" height="800">
+            <svg viewBox="0 0 600 800" aria-hidden="true"><path d="M140,190 L140,140 Q140,112 168,112 L218,112 M402,112 L452,112 Q480,112 480,140 L480,190 M480,622 L480,672 Q480,700 452,700 L402,700 M218,700 L168,700 Q140,700 140,672 L140,622" fill="none" stroke="#2BD15A" stroke-width="12" stroke-linecap="round"/></svg>
+          </div>
+          <figcaption><span class="punto-c" style="background:#1D7A37"></span>Aparentemente sano</figcaption>
+        </figure>
+        <figure class="pegada pegada-2">
+          <div class="pegada-foto">
+            <img src="img/foto-dano.webp" alt="Mango en la rama con una mancha oscura en la cáscara, dentro de un recuadro rojo" loading="lazy" width="600" height="800">
+            <svg viewBox="0 0 600 800" aria-hidden="true"><path d="M100,170 L100,128 Q100,96 132,96 L180,96 M420,96 L468,96 Q500,96 500,128 L500,170 M500,646 L500,690 Q500,722 468,722 L420,722 M180,722 L132,722 Q100,722 100,690 L100,646" fill="none" stroke="#FF5A4E" stroke-width="17" stroke-linecap="round"/></svg>
+          </div>
+          <figcaption><span class="punto-c" style="background:#B8261F"></span>Posible daño</figcaption>
+        </figure>
+      </div>
+    <div class="letrero" role="list" aria-label="Colores del recuadro">
+      <div class="fila" role="listitem">
+        <svg viewBox="0 0 40 40" width="72" height="72" aria-hidden="true"><path d="M6,15 L6,10 Q6,6 10,6 L15,6 M25,6 L30,6 Q34,6 34,10 L34,15 M34,25 L34,30 Q34,34 30,34 L25,34 M15,34 L10,34 Q6,34 6,30 L6,25" fill="none" stroke="#1D7A37" stroke-width="3.6" stroke-linecap="round"/></svg>
+        <div><h3 class="rot rot-x" style="--fill:#1D7A37">Verde</h3><p>Aspecto aparentemente sano.</p></div>
+      </div>
+      <div class="fila" role="listitem">
+        <svg viewBox="0 0 40 40" width="72" height="72" aria-hidden="true"><path d="M6,15 L6,10 Q6,6 10,6 L15,6 M25,6 L30,6 Q34,6 34,10 L34,15 M34,25 L34,30 Q34,34 30,34 L25,34 M15,34 L10,34 Q6,34 6,30 L6,25" fill="none" stroke="#A36F00" stroke-width="3.6" stroke-linecap="round" stroke-dasharray="6 5"/></svg>
+        <div><h3 class="rot rot-x" style="--fill:#A36F00">Ámbar</h3><p>No concluyente. Acércate o busca mejor luz.</p></div>
+      </div>
+      <div class="fila" role="listitem">
+        <svg viewBox="0 0 40 40" width="72" height="72" aria-hidden="true"><path d="M6,15 L6,10 Q6,6 10,6 L15,6 M25,6 L30,6 Q34,6 34,10 L34,15 M34,25 L34,30 Q34,34 30,34 L25,34 M15,34 L10,34 Q6,34 6,30 L6,25" fill="none" stroke="#B8261F" stroke-width="5.4" stroke-linecap="round"/></svg>
+        <div><h3 class="rot rot-x" style="--fill:#B8261F">Rojo</h3><p>Posibles signos de daño. Revísalo primero.</p></div>
+      </div>
+    </div>
+      <p class="pegadas-nota">Fotos ilustrativas de cómo se marcan los recuadros.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== MURO ROJO: se guarda ===== -->
+<section id="guarda" class="muro m-rojo">
+  <div class="wrap dos-tel">
+    <div class="telefono">
+      <div class="pantalla" style="background:#F5F3EC;color:#1B1A16">
+        <div style="padding:44px 18px 10px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#1B1A16" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Resultado</div>
+        <div style="margin:6px 16px 0;height:186px;border-radius:20px;background:#18241D;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden">
+          <img src="img/resultado.webp" alt="" style="height:100%;width:auto;display:block">
+          <svg viewBox="0 0 250 186" width="100%" height="100%" aria-hidden="true" style="position:absolute;inset:0"><path d="M66,46 L66,26 Q66,14 78,14 L92,14 M158,14 L172,14 Q184,14 184,26 L184,46 M184,140 L184,160 Q184,172 172,172 L158,172 M92,172 L78,172 Q66,172 66,160 L66,140" fill="none" stroke="#FF5A4E" stroke-width="4" stroke-linecap="round"/></svg>
+        </div>
+        <div style="margin:16px 16px 0;display:inline-flex;align-items:center;gap:8px;background:#F9DEDC;color:#8F1B15;border-radius:999px;padding:8px 14px;font-weight:700;font-size:13.5px">
+          <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M8 1.6 15 14H1z" fill="#B8261F"/></svg>Posibles signos de daño</div>
+        <p style="margin:12px 18px 0;font-size:13px;line-height:1.5;color:#4A473E">El fruto tenía recuadro rojo al tomar la foto, con imagen suficiente. Evaluación visual experimental.</p>
+        <div style="margin:14px 16px 0;background:#FDFCF8;border:1px solid #D2CDC0;border-radius:14px;padding:2px 14px;font-size:13px">
+          <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #E4E0D4"><span style="color:#6E6A60">Fecha</span><strong>Hoy, 09:14</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #E4E0D4"><span style="color:#6E6A60">Ubicación</span><strong>Con GPS, ±8 m</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:9px 0"><span style="color:#6E6A60">Revisado</span><strong>Pendiente</strong></div>
+        </div>
+        <div style="position:absolute;left:16px;right:16px;bottom:20px;background:#41591A;color:#fff;border-radius:999px;padding:13px;text-align:center;font-weight:700;font-size:14px">Marcar como revisado</div>
+      </div>
+    </div>
+    <div>
+      <h2 class="rot rot-c h-muro sombra" style="--fill:var(--cal);--sombra:var(--tinta)"><span class="linea">Se guarda con</span><span class="linea">foto y lugar</span></h2>
+      <p class="texto">La foto se guarda con el mismo resultado que viste en pantalla, la hora y las coordenadas del GPS. Si activas la captura automática, guarda sola cuando el recuadro se repite.</p>
+      <div class="ficha">
+        <div class="ficha-tit"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 1.6 15 14H1z" fill="#B8261F"/></svg>Posibles signos de daño</div>
+        <p class="ficha-dato">Hoy 09:14 · 19.2433° N, 103.7250° O · ±8 m</p>
+        <p class="ficha-pie">Registro de ejemplo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== MURO VERDE: el mapa ===== -->
+<section id="mapa" class="muro m-verde">
+  <div class="wrap">
+    <div class="mapa-cab">
+      <h2 class="rot rot-c h-muro sombra filete" style="--fill:var(--mango);--sombra:var(--rojo);--filete:var(--tinta)"><span class="linea">Encuéntralos</span><span class="linea">en el mapa</span></h2>
+      <p class="texto">Cada mango con posible daño queda marcado donde lo fotografiaste. Una línea une los puntos en el orden en que tomaste las fotos, para que vuelvas directo al árbol.</p>
+    </div>
+    <div class="mapa-zona">
+      <div class="mapa-marco">
+        <svg viewBox="0 0 640 400" role="img" aria-label="Mapa ilustrativo de una huerta con cuatro puntos de posible daño unidos por una línea y una zona descargada para usar sin conexión">
+          <rect width="640" height="400" fill="#EEEEEA"/>
+          <path d="M0,70 C140,104 250,44 400,84 C500,110 570,94 640,74 L640,114 C566,134 496,150 396,124 C250,86 140,146 0,112Z" fill="#D3DFE3"/>
+          <g fill="#E1E1DB"><rect x="40" y="176" width="150" height="100" rx="6"/><rect x="40" y="300" width="190" height="90" rx="6"/><rect x="480" y="290" width="130" height="100" rx="6"/><rect x="330" y="320" width="110" height="70" rx="6"/></g>
+          <g stroke="#D6D6CF" stroke-width="19" fill="none" stroke-linecap="round"><path d="M-20,296 C120,256 240,336 380,286 S560,246 660,266"/><path d="M262,-20 C290,110 230,220 270,360 S300,420 296,440"/></g>
+          <g stroke="#FFFFFF" stroke-width="15" fill="none" stroke-linecap="round"><path d="M-20,296 C120,256 240,336 380,286 S560,246 660,266"/><path d="M262,-20 C290,110 230,220 270,360 S300,420 296,440"/></g>
+          <g font-family="Atkinson Hyperlegible Next,sans-serif" font-size="13" font-weight="700" fill="#8E8E87" letter-spacing=".4"><text x="70" y="292" transform="rotate(-9 70 292)">Camino a la huerta</text><text x="226" y="132" transform="rotate(-80 226 132)">Calle Principal</text></g>
+          <g stroke="#C4C4BC" stroke-width="2.4" stroke-dasharray="2 8" fill="none" stroke-linecap="round">
+            <path d="M330,166 L560,158"/><path d="M330,186 L560,178"/><path d="M330,206 L560,198"/><path d="M330,226 L560,218"/><path d="M330,246 L560,238"/>
+            <path d="M52,198 L178,192"/><path d="M52,218 L178,212"/><path d="M52,238 L178,232"/><path d="M52,258 L178,252"/>
+          </g>
+          <rect x="316" y="144" width="268" height="124" rx="10" fill="rgba(35,95,70,.08)" stroke="#235F46" stroke-width="3" stroke-dasharray="10 8"/>
+          <path class="ruta" pathLength="1" d="M372,182 L440,220 L408,252 L500,208 L548,182" fill="none" stroke="#B8261F" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>
+          <g class="punto p1"><circle class="ping" cx="372" cy="182" r="13" fill="#B8261F"/><circle cx="372" cy="182" r="11" fill="#B8261F" stroke="#fff" stroke-width="4"/></g>
+          <g class="punto p2"><circle class="ping ping2" cx="440" cy="220" r="13" fill="#B8261F"/><circle cx="440" cy="220" r="11" fill="#B8261F" stroke="#fff" stroke-width="4"/></g>
+          <circle class="punto p3" cx="408" cy="252" r="11" fill="#B8261F" stroke="#fff" stroke-width="4"/>
+          <g class="punto p4"><circle class="ping ping3" cx="500" cy="208" r="13" fill="#B8261F"/><circle cx="500" cy="208" r="11" fill="#B8261F" stroke="#fff" stroke-width="4"/></g>
+          <circle class="punto p5" cx="548" cy="182" r="11" fill="#B8261F" stroke="#fff" stroke-width="4"/>
+        </svg>
+        <div class="leyenda">
+          <span><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="#B8261F" stroke="#fff" stroke-width="2.5"/></svg>Posible daño</span>
+          <span><svg viewBox="0 0 18 8" width="18" height="8" aria-hidden="true"><path d="M1 4h16" stroke="#235F46" stroke-width="3" stroke-dasharray="4 3"/></svg>Zona sin conexión</span>
+        </div>
+      </div>
+      <div class="telefono mapa-tel">
+        <div class="pantalla" style="background:#EEEEEA">
+          <svg viewBox="0 0 282 602" width="100%" height="100%" aria-hidden="true" style="position:absolute;inset:0">
+            <rect width="282" height="602" fill="#EEEEEA"/>
+            <path d="M0,130 C70,150 120,110 190,140 C230,156 262,150 282,144 L282,164 C260,170 226,176 188,160 C120,130 70,170 0,150Z" fill="#D3DFE3"/>
+            <g fill="#E1E1DB"><rect x="14" y="380" width="74" height="70" rx="5"/><rect x="134" y="364" width="124" height="80" rx="5"/><rect x="14" y="480" width="110" height="50" rx="5"/></g>
+            <g stroke="#D6D6CF" stroke-width="11" fill="none" stroke-linecap="round"><path d="M-10,340 C60,310 120,370 190,330 S272,310 300,320"/><path d="M96,-10 C110,120 70,260 100,420 S120,560 118,620"/></g>
+            <g stroke="#FFFFFF" stroke-width="9" fill="none" stroke-linecap="round"><path d="M-10,340 C60,310 120,370 190,330 S272,310 300,320"/><path d="M96,-10 C110,120 70,260 100,420 S120,560 118,620"/></g>
+            <rect x="130" y="196" width="136" height="130" rx="10" fill="none" stroke="#235F46" stroke-width="2.4" stroke-dasharray="7 6"/>
+            <path d="M156,232 L198,256 L178,298 L232,280" fill="none" stroke="#B8261F" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>
+            <g fill="#B8261F" stroke="#fff" stroke-width="3"><circle cx="156" cy="232" r="8"/><circle cx="198" cy="256" r="8"/><circle cx="178" cy="298" r="8"/><circle cx="232" cy="280" r="8"/></g>
+          </svg>
+          <div style="position:absolute;left:14px;top:46px;background:#FDFCF8;border-radius:999px;padding:9px 16px;font-weight:700;font-size:13.5px;color:#1B1A16;box-shadow:0 6px 14px -4px rgba(0,0,0,.25)">4 hallazgos con ubicación</div>
+          <div style="position:absolute;left:14px;right:14px;bottom:18px;background:#FDFCF8;border-radius:20px;padding:14px 16px;box-shadow:0 10px 24px -8px rgba(0,0,0,.3);color:#1B1A16">
+            <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="#1D7A37"/><path d="M5 8.2l2 2 4-4.4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Zona sin conexión lista</div>
+            <p style="margin:4px 0 0 26px;font-size:12.5px;color:#4A473E">Úsala aunque no tengas señal.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="mapa-pie">Mapa ilustrativo. La app usa mapas de OpenStreetMap que puedes descargar para tu zona.</p>
+  </div>
+</section>
+
+<!-- ===== MURO HOJA: sin señal ===== -->
+<section id="sin-senal" class="muro m-hoja">
+  <div class="wrap dos-tel invertido">
+    <div>
+      <h2 class="rot rot-c h-muro sombra" style="--fill:var(--rojo);--sombra:var(--tinta)"><span class="linea">Sin señal,</span><span class="linea">tus fotos</span><span class="linea">en tu teléfono</span></h2>
+      <p class="texto">La detección, el GPS y el historial funcionan dentro del teléfono. Solo necesitas internet para crear tu cuenta y, si quieres, para descargar el mapa de tu zona. Tus fotos y ubicaciones no salen de tu teléfono, salvo que tú las compartas.</p>
+      <ul class="puntos">
+        <li><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1B4A36" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Exporta fotos y registros en un archivo ZIP.</li>
+        <li><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1B4A36" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Aviso por voz en español, si lo quieres.</li>
+        <li><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#1B4A36" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Notas y marca de revisado en cada hallazgo.</li>
+      </ul>
+    </div>
+    <div class="telefono">
+      <div class="pantalla" style="background:#F5F3EC;color:#1B1A16">
+        <div style="padding:44px 18px 12px;font-weight:700;font-size:26px">Historial</div>
+        <div style="padding:0 14px;display:flex;flex-direction:column;gap:10px">
+          <div style="background:#FDFCF8;border:1px solid #D2CDC0;border-radius:16px;padding:10px;display:flex;align-items:center;gap:12px">
+            <img src="img/mini-dano.webp" class="mini" alt="" width="50" height="50" style="border-radius:12px;flex:0 0 auto;object-fit:cover">
+            <div style="font-size:13px;line-height:1.4"><span style="display:inline-flex;align-items:center;gap:6px;background:#F9DEDC;color:#8F1B15;border-radius:999px;padding:3px 10px;font-weight:700;font-size:12px">Posible daño</span><br><span style="color:#6E6A60">Hoy, 09:14 · con ubicación</span></div></div>
+          <div style="background:#FDFCF8;border:1px solid #D2CDC0;border-radius:16px;padding:10px;display:flex;align-items:center;gap:12px">
+            <img src="img/mini-dano2.webp" class="mini" alt="" width="50" height="50" style="border-radius:12px;flex:0 0 auto;object-fit:cover">
+            <div style="font-size:13px;line-height:1.4"><span style="display:inline-flex;align-items:center;gap:6px;background:#F9DEDC;color:#8F1B15;border-radius:999px;padding:3px 10px;font-weight:700;font-size:12px">Posible daño</span><br><span style="color:#6E6A60">Hoy, 09:08 · con ubicación</span></div></div>
+          <div style="background:#FDFCF8;border:1px solid #D2CDC0;border-radius:16px;padding:10px;display:flex;align-items:center;gap:12px">
+            <img src="img/mini-sano.webp" class="mini" alt="" width="50" height="50" style="border-radius:12px;flex:0 0 auto;object-fit:cover">
+            <div style="font-size:13px;line-height:1.4"><span style="display:inline-flex;align-items:center;gap:6px;background:#DDF0E1;color:#14582A;border-radius:999px;padding:3px 10px;font-weight:700;font-size:12px">Aspecto sano</span><br><span style="color:#6E6A60">Hoy, 09:02 · con ubicación</span></div></div>
+          <div style="background:#FDFCF8;border:1px solid #D2CDC0;border-radius:16px;padding:10px;display:flex;align-items:center;gap:12px">
+            <img src="img/mini-borrosa.webp" class="mini" alt="" width="50" height="50" style="border-radius:12px;flex:0 0 auto;object-fit:cover">
+            <div style="font-size:13px;line-height:1.4"><span style="display:inline-flex;align-items:center;gap:6px;background:#FBEBC4;color:#6B4500;border-radius:999px;padding:3px 10px;font-weight:700;font-size:12px">No concluyente</span><br><span style="color:#6E6A60">Ayer, 17:40 · sin ubicación</span></div></div>
+          <div style="background:#FDFCF8;border:1px solid #D2CDC0;border-radius:16px;padding:10px;display:flex;align-items:center;gap:12px">
+            <img src="img/mini-dano2.webp" class="mini" alt="" width="50" height="50" style="border-radius:12px;flex:0 0 auto;object-fit:cover;transform:scaleX(-1)">
+            <div style="font-size:13px;line-height:1.4"><span style="display:inline-flex;align-items:center;gap:6px;background:#F9DEDC;color:#8F1B15;border-radius:999px;padding:3px 10px;font-weight:700;font-size:12px">Posible daño</span><br><span style="color:#6E6A60">Ayer, 17:31 · con ubicación</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== AVISO: lo que no hace ===== -->
+<section class="aviso-sec">
+  <div class="wrap">
+    <div class="aviso">
+      <h2 class="rot rot-c h-aviso sombra">Lo que no hace</h2>
+      <div class="tres">
+        <div><h3>No diagnostica enfermedades.</h3><p>Solo separa el aspecto aparentemente sano de los posibles signos de daño. No dice de qué se trata.</p></div>
+        <div><h3>No asegura que un mango esté sano.</h3><p>Un daño por dentro, o del lado que no salió en la foto, no se puede ver.</p></div>
+        <div><h3>Todavía está en pruebas.</h3><p>El modelo es experimental y falta probarlo con más fotos de huerta. Úsalo como apoyo, no como veredicto.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PREGUNTAS ===== -->
+<section id="preguntas" class="preguntas">
+  <div class="wrap preguntas-grid">
+    <div class="preg-lado">
+      <h2 class="rot rot-c h-preg sombra">Preguntas</h2>
+      <figure class="mural"><img src="img/mural.webp" alt="Mango pintado en la barda de una huerta" loading="lazy" width="1000" height="667"></figure>
+    </div>
+    <div>
+      <details>
+        <summary>¿Necesita internet?<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#14231B" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <p>Solo para crear tu cuenta y entrar la primera vez. Después detecta y guarda sin señal. Si quieres el mapa de tu zona, lo descargas una vez con Wi‑Fi.</p>
+      </details>
+      <details>
+        <summary>¿Cuánto cuesta?<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#14231B" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <p>Los primeros 30 días son gratis y no pedimos tarjeta. Después cuesta $79 al mes, sin plazo forzoso. Se renueva escribiéndonos por WhatsApp al 312 271 2212.</p>
+      </details>
+      <details>
+        <summary>¿Dónde se guardan mis fotos?<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#14231B" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <p>En tu teléfono, dentro de la app. Puedes compartir un registro o exportarlos todos en un ZIP. Si desinstalas la app se borran, así que exporta antes.</p>
+      </details>
+      <details>
+        <summary>¿Qué tan precisa es?<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#14231B" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <p>Todavía lo estamos midiendo con mangos reales. Por eso el resultado habla de «posibles» signos de daño y no de certezas.</p>
+      </details>
+      <details>
+        <summary>¿Funciona en iPhone?<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#14231B" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <p>Por ahora solo hay versión para Android 8.0 o superior.</p>
+      </details>
+      <details>
+        <summary>¿Por qué Android dice que la app es desconocida?<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#14231B" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <p>Porque AgroCam todavía no está en Play Store y se instala desde esta página. Descárgala solo de agrocam-web.vercel.app. Si quieres comprobar que el archivo es el original, compara su huella SHA‑256 con la que aparece junto al botón de descarga.</p>
+      </details>
+      <details>
+        <summary>¿Por qué a veces no se puede tomar la foto?<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#14231B" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary>
+        <p>El botón espera a que el teléfono esté quieto, haya luz suficiente y el recuadro se mantenga sobre el fruto. Así la foto guardada coincide con lo que evaluó la app.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CIERRE ===== -->
+<section id="descargar" class="muro m-tinta cierre">
+  <div class="wrap cierre-dos">
+    <figure class="cierre-foto"><img src="img/mano.webp" alt="Mano sosteniendo un teléfono frente a los mangos de una huerta" loading="lazy" width="1200" height="900"></figure>
+    <div class="cierre-txt">
+      <h2 class="rot rot-c h-cierre sombra filete" style="--filete:var(--cal)"><span class="linea">Pruébala</span><span class="linea">en tu huerta</span></h2>
+      <p class="texto">Instala la versión de prueba, crea tu cuenta y usa AgroCam 30 días gratis. Cuéntanos qué viste: tus comentarios nos ayudan a mejorar el modelo.</p>
+      <div class="ctas">
+        <a class="btn btn-mango" id="apk-link" href="AgroCam.apk" download>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>
+          Descargar APK</a>
+      </div>
+      <p class="nota" id="apk-meta">Android 8.0 o superior</p>
+      <ol class="pasos-instalar">
+        <li>Toca <strong>Descargar APK</strong> desde tu teléfono Android.</li>
+        <li>Abre el archivo. Si Android pregunta, permite <strong>instalar apps de esta fuente</strong> para tu navegador.</li>
+        <li>Toca <strong>Instalar</strong>, abre AgroCam y crea tu cuenta. Solo esa vez necesitas internet.</li>
+      </ol>
+      <p class="huella" id="apk-huella" hidden><span>Huella SHA‑256 del archivo</span><code id="apk-sha"></code></p>
+      <p class="nota"><a href="privacidad.html">Aviso de privacidad</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ZOCLO ===== -->
+<footer class="zoclo">
+  <div class="wrap">
+    <span style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><span class="marca-txt">AgroCam</span>Versión de prueba · Evaluación visual experimental · Imágenes ilustrativas</span>
+    <span style="display:flex;gap:24px;flex-wrap:wrap"><a href="privacidad.html">Aviso de privacidad</a><a href="https://wa.me/523122712212">WhatsApp 312 271 2212</a></span>
+  </div>
+</footer>
+
+</div>
+
+<script>
+// Versión, tamaño y huella vienen de version.json (lo escribe publicar.sh).
+fetch('version.json', {cache: 'no-store'}).then(function (r) { return r.json(); }).then(function (v) {
+  var mb = Math.round((v.sizeBytes || 0) / 1e6);
+  document.getElementById('apk-meta').textContent = 'Versión ' + v.versionName + (mb ? ' · ' + mb + ' MB' : '') + ' · Android 8.0 o superior';
+  if (v.sha256) { document.getElementById('apk-sha').textContent = v.sha256; document.getElementById('apk-huella').hidden = false; }
+  if (v.versionCode) { document.getElementById('apk-link').href = 'AgroCam.apk?v=' + v.versionCode; }
+}).catch(function () {});
+</script>
+
+<script>
+(function(){var el=document.scrollingElement||document.documentElement;if(el.scrollHeight>window.innerHeight*1.5)document.querySelector('.pagina').classList.add('anima');})();
+</script>
+</body>
+</html>

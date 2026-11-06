@@ -1,0 +1,10 @@
+{
+  "versionCode": 2,
+  "versionName": "0.1.0",
+  "minVersionCode": 1,
+  "apkUrl": "https://agrocam-web.vercel.app/AgroCam.apk?v=2",
+  "sizeBytes": 46759460,
+  "sha256": "7f686ec8c482795c5e3aacd91338f7b0986b6bd8d82bdd3a47211aeb33523819",
+  "notes": "Primera versión de prueba: cuenta con 30 días gratis, detección de mangos, historial y mapa.",
+  "publishedAt": "2026-10-17T22:50:46Z"
+}
